@@ -8,13 +8,13 @@ const (
 )
 
 type User struct {
-	id       int
-	role     Role
-	email    string
-	balance  float64
-	fullname string
-	username string
-	password string
+	Id       int     `json:"id"`
+	Role     Role    `json:"role"`
+	Email    string  `json:"email"`
+	Balance  float64 `json:"balance"`
+	Fullname string  `json:"fullname"`
+	Username string  `json:"username"`
+	Password string  `json:"password"`
 }
 
 type Operation string

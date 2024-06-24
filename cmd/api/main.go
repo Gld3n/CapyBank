@@ -23,7 +23,7 @@ type application struct {
 func main() {
 	var cfg configuration
 
-	flag.StringVar(&cfg.dsn, "dsn", "user=postgres dbname=capybank password=RvBv.3011_2004@Pg sslmode=disable", "the connection string for the database")
+	flag.StringVar(&cfg.dsn, "dsn", os.Getenv("postgres-dsn"), "the connection string for the database")
 	flag.StringVar(&cfg.port, "port", ":8000", "the address to mount the server onto")
 	flag.Parse()
 
@@ -43,8 +43,6 @@ func main() {
 		}
 	}(db)
 
-	logger.Info("db initialized")
-
 	app := &application{
 		logger:       logger,
 		transactions: &TransactionModel{DB: db},
@@ -53,7 +51,7 @@ func main() {
 	logger.Info("starting server", slog.String("port", cfg.port))
 
 	if err := http.ListenAndServe(cfg.port, app.routes()); err != nil {
-		logger.Error("conchale mano la recontra tri cagaste")
+		logger.Error("error starting server")
 	}
 }
 
