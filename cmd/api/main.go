@@ -17,6 +17,7 @@ type configuration struct {
 
 type application struct {
 	logger       *slog.Logger
+	users        *UserModel
 	transactions *TransactionModel
 }
 
@@ -45,6 +46,7 @@ func main() {
 
 	app := &application{
 		logger:       logger,
+		users:        &UserModel{DB: db},
 		transactions: &TransactionModel{DB: db},
 	}
 

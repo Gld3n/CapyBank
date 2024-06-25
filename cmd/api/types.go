@@ -1,21 +1,50 @@
 package main
 
+import "time"
+
+type RequestCreateUser struct {
+	Role     Role   `json:"role"`
+	Email    string `json:"email"`
+	Fullname string `json:"fullname"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type RequestLoginUser struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type ResponseUser struct {
+	ID        int       `json:"id"`
+	Role      Role      `json:"role"`
+	Email     string    `json:"email"`
+	Balance   float64   `json:"balance"`
+	Fullname  string    `json:"fullname"`
+	Username  string    `json:"username"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// DBUser represents a user stored in the database, including the hashed password
+type DBUser struct {
+	ID             int       `json:"id"`
+	Role           Role      `json:"role"`
+	Email          string    `json:"email"`
+	Balance        float64   `json:"balance"`
+	Fullname       string    `json:"fullname"`
+	Username       string    `json:"username"`
+	HashedPassword string    `json:"hashed_password"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
 type Role string
 
 const (
 	Admin  Role = "admin"
 	Normal      = "normal"
 )
-
-type User struct {
-	Id       int     `json:"id"`
-	Role     Role    `json:"role"`
-	Email    string  `json:"email"`
-	Balance  float64 `json:"balance"`
-	Fullname string  `json:"fullname"`
-	Username string  `json:"username"`
-	Password string  `json:"password"`
-}
 
 type Operation string
 
