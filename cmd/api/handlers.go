@@ -29,6 +29,12 @@ func (app *application) loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	app.logger.Info("user authenticated successfully")
+
+	_, err = createJWTToken(&dbUser)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
 }
 
 func (app *application) signupHandler(w http.ResponseWriter, r *http.Request) {
