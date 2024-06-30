@@ -7,6 +7,8 @@ import (
 )
 
 func (app *application) loginHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	var reqLogin *RequestLoginUser
 	if err := json.NewDecoder(r.Body).Decode(&reqLogin); err != nil {
 		app.clientError(w, http.StatusBadRequest)
@@ -30,10 +32,17 @@ func (app *application) loginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	app.logger.Info("user authenticated successfully")
 
-	_, err = createJWTToken(&dbUser)
+	token, err := createJWTToken(&dbUser)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
+	}
+
+	payload := make(map[string]string)
+	payload["token"] = token
+
+	if err = json.NewEncoder(w).Encode(payload); err != nil {
+		app.serverError(w, r, err)
 	}
 }
 

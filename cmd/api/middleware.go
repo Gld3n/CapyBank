@@ -18,3 +18,24 @@ func (app *application) logRequest(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+func (app *application) requireAuthentication(next http.Handler) http.Handler {
+	// TODO: improve token verification and error handling
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		headerToken := r.Header.Get("Authorization")[len("Bearer "):]
+		if headerToken == "" {
+			app.clientError(w, http.StatusUnauthorized)
+			return
+		}
+
+		_, err := verifyJWTToken(headerToken)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+
+		app.logger.Info("use authorized")
+
+		next.ServeHTTP(w, r)
+	})
+}
