@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"github.com/golang-jwt/jwt/v5"
 	"log/slog"
 	"net/http"
 )
@@ -20,7 +22,6 @@ func (app *application) logRequest(next http.Handler) http.Handler {
 }
 
 func (app *application) requireAuthentication(next http.Handler) http.Handler {
-	// TODO: improve token verification and error handling
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		headerToken := r.Header.Get("Authorization")[len("Bearer "):]
 		if headerToken == "" {
@@ -29,12 +30,19 @@ func (app *application) requireAuthentication(next http.Handler) http.Handler {
 		}
 
 		_, err := verifyJWTToken(headerToken)
+		// TODO: create custom error json response struct and handle custom messages
 		if err != nil {
-			app.serverError(w, r, err)
-			return
+			switch {
+			case errors.Is(err, jwt.ErrTokenExpired):
+				app.clientError(w, http.StatusUnauthorized)
+				return
+			case errors.Is(err, jwt.ErrTokenSignatureInvalid):
+				app.clientError(w, http.StatusBadRequest)
+			default:
+				app.serverError(w, r, err)
+				return
+			}
 		}
-
-		app.logger.Info("use authorized")
 
 		next.ServeHTTP(w, r)
 	})
