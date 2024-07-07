@@ -6,7 +6,11 @@ import (
 	"net/http"
 )
 
-var ErrNoRecord = errors.New("no matching record found")
+var (
+	ErrInsufficientFunds = errors.New("insufficient funds for this operation")
+	ErrInvalidAmount     = errors.New("amount must be a positive number")
+	ErrNoRecord          = errors.New("no matching record found")
+)
 
 func (app *application) serverError(w http.ResponseWriter, r *http.Request, err error) {
 	method := r.Method
@@ -21,6 +25,7 @@ func (app *application) serverError(w http.ResponseWriter, r *http.Request, err 
 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }
 
-func (app *application) clientError(w http.ResponseWriter, status int) {
+func (app *application) clientError(w http.ResponseWriter, err error, status int) {
+	app.logger.Error(err.Error())
 	http.Error(w, http.StatusText(status), status)
 }

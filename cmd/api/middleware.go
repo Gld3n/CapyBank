@@ -25,7 +25,7 @@ func (app *application) requireAuthentication(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		headerToken := r.Header.Get("Authorization")[len("Bearer "):]
 		if headerToken == "" {
-			app.clientError(w, http.StatusUnauthorized)
+			app.clientError(w, jwt.ErrTokenMalformed, http.StatusUnauthorized)
 			return
 		}
 
@@ -34,10 +34,10 @@ func (app *application) requireAuthentication(next http.Handler) http.Handler {
 		if err != nil {
 			switch {
 			case errors.Is(err, jwt.ErrTokenExpired):
-				app.clientError(w, http.StatusUnauthorized)
+				app.clientError(w, err, http.StatusUnauthorized)
 				return
 			case errors.Is(err, jwt.ErrTokenSignatureInvalid):
-				app.clientError(w, http.StatusBadRequest)
+				app.clientError(w, err, http.StatusBadRequest)
 			default:
 				app.serverError(w, r, err)
 				return
