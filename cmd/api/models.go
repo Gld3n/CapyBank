@@ -50,8 +50,18 @@ func (u *UserModel) createUser(usr *RequestCreateUser) error {
 	return nil
 }
 
+func updateBalance(tx *sql.Tx, balance float64, userId int) error {
+	_, err := tx.Exec(`UPDATE users SET balance = $1 WHERE id = $2`, balance, userId)
+	return err
+}
+
 type TransactionModel struct {
 	DB *sql.DB
+}
+
+func (t *TransactionModel) insertTransaction(tx *sql.Tx, tr *Transaction) error {
+	_, err := tx.Exec(`INSERT INTO transactions (user_id, amount, transaction_type, created_at) VALUES ($1, $2, $3, $4)`, tr.UserID, tr.Amount, tr.Type, time.Now())
+	return err
 }
 
 func (t *TransactionModel) processNewTransaction(tr *Transaction) error {
@@ -73,22 +83,30 @@ func (t *TransactionModel) processNewTransaction(tr *Transaction) error {
 		}
 	case Transfer:
 	case Withdrawal:
+		if err = withdraw(tx, tr, userBalance); err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("operation type %s not valid", tr.Type)
 	}
 
-	_, err = tx.Exec(`INSERT INTO transactions (user_id, amount, transaction_type, created_at) VALUES ($1, $2, $3, $4)`, tr.UserID, tr.Amount, tr.Type, time.Now())
-	if err != nil {
+	if err = t.insertTransaction(tx, tr); err != nil {
 		return err
 	}
 
-	err = tx.Commit()
-	return err
+	return tx.Commit()
 }
 
 func deposit(tx *sql.Tx, tr *Transaction, balance float64) error {
 	newBalance := balance + tr.Amount
+	return updateBalance(tx, newBalance, tr.UserID)
+}
 
-	_, err := tx.Exec(`UPDATE users SET balance = $1 WHERE id = $2`, newBalance, tr.UserID)
-	return err
+func withdraw(tx *sql.Tx, tr *Transaction, balance float64) error {
+	newBalance := balance - tr.Amount
+	if newBalance < 0 {
+		return ErrInsufficientFunds
+	}
+
+	return updateBalance(tx, newBalance, tr.UserID)
 }
