@@ -29,7 +29,7 @@ func (app *application) requireAuthentication(next http.Handler) http.Handler {
 			return
 		}
 
-		_, err := verifyJWTToken(headerToken)
+		err := verifyJWTToken(headerToken)
 		// TODO: create custom error json response struct and handle custom messages
 		if err != nil {
 			switch {
