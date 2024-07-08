@@ -15,7 +15,7 @@ func (app *application) loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dbUser, err := app.users.getUserByUsername(reqLogin.Username)
+	dbUser, err := getUserByUsername(app.users.DB, reqLogin.Username)
 	if err != nil {
 		if errors.Is(err, ErrNoRecord) {
 			app.clientError(w, err, http.StatusUnauthorized)

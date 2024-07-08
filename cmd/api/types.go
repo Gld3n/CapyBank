@@ -26,7 +26,6 @@ type ResponseUser struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-// DBUser represents a user stored in the database, including the hashed password
 type DBUser struct {
 	ID             int       `json:"id"`
 	Role           Role      `json:"role"`
@@ -55,7 +54,8 @@ const (
 )
 
 type Transaction struct {
-	UserID int       `json:"user_id"`
-	Amount float64   `json:"amount"`
-	Type   Operation `json:"transaction_type"`
+	UserID             int       `json:"user_id"`
+	Amount             float64   `json:"amount"`
+	Type               Operation `json:"transaction_type"`
+	TargetUserUsername *string   `json:"target_user_username,omitempty"`
 }

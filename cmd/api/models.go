@@ -11,12 +11,16 @@ type UserModel struct {
 	DB *sql.DB
 }
 
-func (u *UserModel) getUserByUsername(username string) (DBUser, error) {
-	stmt := `SELECT username, password FROM users WHERE username = $1`
+type QueryRower interface {
+	QueryRow(query string, args ...interface{}) *sql.Row
+}
+
+func getUserByUsername(q QueryRower, username string) (DBUser, error) {
+	stmt := `SELECT id, user_role, username, password FROM users WHERE username = $1`
 
 	var dbu DBUser
 
-	err := u.DB.QueryRow(stmt, username).Scan(&dbu.Username, &dbu.HashedPassword)
+	err := q.QueryRow(stmt, username).Scan(&dbu.ID, &dbu.Role, &dbu.Username, &dbu.HashedPassword)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return DBUser{}, ErrNoRecord
@@ -43,11 +47,7 @@ func (u *UserModel) createUser(usr *RequestCreateUser) error {
 		return err
 	}
 
-	if err = tx.Commit(); err != nil {
-		return err
-	}
-
-	return nil
+	return tx.Commit()
 }
 
 func updateBalance(tx *sql.Tx, balance float64, userId int) error {
@@ -82,6 +82,9 @@ func (t *TransactionModel) processNewTransaction(tr *Transaction) error {
 			return err
 		}
 	case Transfer:
+		if err = transfer(tx, tr, userBalance); err != nil {
+			return err
+		}
 	case Withdrawal:
 		if err = withdraw(tx, tr, userBalance); err != nil {
 			return err
@@ -99,6 +102,27 @@ func (t *TransactionModel) processNewTransaction(tr *Transaction) error {
 
 func deposit(tx *sql.Tx, tr *Transaction, balance float64) error {
 	newBalance := balance + tr.Amount
+	return updateBalance(tx, newBalance, tr.UserID)
+}
+
+func transfer(tx *sql.Tx, tr *Transaction, balance float64) error {
+	/* TODO: validate...
+	- Target user exists
+	- Target user is not same user
+	- JSON nil target user to avoid nil pointer dereference
+	*/
+	newBalance := balance - tr.Amount
+	if newBalance < 0 {
+		return ErrInsufficientFunds
+	}
+
+	targetUser, err := getUserByUsername(tx, *tr.TargetUserUsername)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`UPDATE users SET balance = balance + $1 WHERE id = $2`, tr.Amount, targetUser.ID)
+
 	return updateBalance(tx, newBalance, tr.UserID)
 }
 
