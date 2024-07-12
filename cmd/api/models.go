@@ -106,19 +106,22 @@ func deposit(tx *sql.Tx, tr *Transaction, balance float64) error {
 }
 
 func transfer(tx *sql.Tx, tr *Transaction, balance float64) error {
-	/* TODO: validate...
-	- Target user exists
-	- Target user is not same user
-	- JSON nil target user to avoid nil pointer dereference
-	*/
 	newBalance := balance - tr.Amount
 	if newBalance < 0 {
 		return ErrInsufficientFunds
 	}
 
+	if tr.TargetUserUsername == nil {
+		return ErrNoTargetSpecified
+	}
+
 	targetUser, err := getUserByUsername(tx, *tr.TargetUserUsername)
 	if err != nil {
 		return err
+	}
+
+	if tr.UserID == targetUser.ID {
+		return ErrSameUserTransaction
 	}
 
 	_, err = tx.Exec(`UPDATE users SET balance = balance + $1 WHERE id = $2`, tr.Amount, targetUser.ID)

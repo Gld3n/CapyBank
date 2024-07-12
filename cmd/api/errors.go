@@ -7,9 +7,11 @@ import (
 )
 
 var (
-	ErrInsufficientFunds = errors.New("insufficient funds for this operation")
-	ErrInvalidAmount     = errors.New("amount must be a positive number")
-	ErrNoRecord          = errors.New("no matching record found")
+	ErrInsufficientFunds   = errors.New("insufficient funds for this operation")
+	ErrInvalidAmount       = errors.New("amount must be a positive number")
+	ErrNoRecord            = errors.New("no matching record found")
+	ErrNoTargetSpecified   = errors.New("no target specified for transfer transaction")
+	ErrSameUserTransaction = errors.New("same user transfer not available")
 )
 
 func (app *application) serverError(w http.ResponseWriter, r *http.Request, err error) {
