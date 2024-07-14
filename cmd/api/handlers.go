@@ -81,15 +81,16 @@ func (app *application) transactionHandler(w http.ResponseWriter, r *http.Reques
 
 	// TODO: refactor this section and send JSON error responses
 	if err := app.transactions.processNewTransaction(reqTr); err != nil {
-		if errors.Is(err, ErrNoRecord) {
+		switch {
+		case errors.Is(err, ErrNoRecord):
 			app.clientError(w, err, http.StatusNotFound)
-		} else if errors.Is(err, ErrInsufficientFunds) {
+		case errors.Is(err, ErrInsufficientFunds):
 			app.clientError(w, err, http.StatusPaymentRequired)
-		} else if errors.Is(err, ErrSameUserTransaction) {
+		case errors.Is(err, ErrSameUserTransaction):
 			app.clientError(w, err, http.StatusBadRequest)
-		} else if errors.Is(err, ErrNoTargetSpecified) {
+		case errors.Is(err, ErrNoTargetSpecified):
 			app.clientError(w, err, http.StatusBadRequest)
-		} else {
+		default:
 			app.serverError(w, r, err)
 		}
 	}
