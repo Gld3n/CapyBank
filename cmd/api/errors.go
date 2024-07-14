@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -12,6 +13,7 @@ var (
 	ErrNoRecord            = errors.New("no matching record found")
 	ErrNoTargetSpecified   = errors.New("no target specified for transfer transaction")
 	ErrSameUserTransaction = errors.New("same user transfer not available")
+	ErrUserNotFound        = errors.New("target user requested not found")
 )
 
 func (app *application) serverError(w http.ResponseWriter, r *http.Request, err error) {
@@ -28,6 +30,9 @@ func (app *application) serverError(w http.ResponseWriter, r *http.Request, err 
 }
 
 func (app *application) clientError(w http.ResponseWriter, err error, status int) {
-	app.logger.Error(err.Error())
-	http.Error(w, http.StatusText(status), status)
+	response := map[string]string{"error": err.Error()}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(response)
 }

@@ -18,7 +18,7 @@ func (app *application) loginHandler(w http.ResponseWriter, r *http.Request) {
 	dbUser, err := getUserByUsername(app.users.DB, reqLogin.Username)
 	if err != nil {
 		if errors.Is(err, ErrNoRecord) {
-			app.clientError(w, err, http.StatusUnauthorized)
+			app.clientError(w, ErrUserNotFound, http.StatusNotFound)
 			return
 		} else {
 			app.serverError(w, r, err)
@@ -82,7 +82,7 @@ func (app *application) transactionHandler(w http.ResponseWriter, r *http.Reques
 	// TODO: refactor this section and send JSON error responses
 	if err := app.transactions.processNewTransaction(reqTr); err != nil {
 		switch {
-		case errors.Is(err, ErrNoRecord):
+		case errors.Is(err, ErrUserNotFound):
 			app.clientError(w, err, http.StatusNotFound)
 		case errors.Is(err, ErrInsufficientFunds):
 			app.clientError(w, err, http.StatusPaymentRequired)

@@ -117,7 +117,9 @@ func transfer(tx *sql.Tx, tr *Transaction, balance float64) error {
 
 	targetUser, err := getUserByUsername(tx, *tr.TargetUserUsername)
 	if err != nil {
-		return err
+		if errors.Is(err, ErrNoRecord) {
+			return ErrUserNotFound
+		}
 	}
 
 	if tr.UserID == targetUser.ID {
