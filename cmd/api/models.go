@@ -16,11 +16,11 @@ type QueryRower interface {
 }
 
 func getUserByUsername(q QueryRower, username string) (DBUser, error) {
-	stmt := `SELECT id, user_role, username, password FROM users WHERE username = $1`
+	stmt := `SELECT id, user_role, email, balance, fullname, username, password, created_at, updated_at FROM users WHERE username = $1`
 
 	var dbu DBUser
 
-	err := q.QueryRow(stmt, username).Scan(&dbu.ID, &dbu.Role, &dbu.Username, &dbu.HashedPassword)
+	err := q.QueryRow(stmt, username).Scan(&dbu.ID, &dbu.Role, &dbu.Email, &dbu.Balance, &dbu.Fullname, &dbu.Username, &dbu.HashedPassword, &dbu.CreatedAt, &dbu.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return DBUser{}, ErrNoRecord
@@ -48,6 +48,25 @@ func (u *UserModel) createUser(usr *RequestCreateUser) error {
 	}
 
 	return tx.Commit()
+}
+
+func (u *UserModel) updateUser(userId int, userAttr string, newValue interface{}) error {
+	stmt := `UPDATE users SET $1 = $2 WHERE id = $3`
+
+	tx, err := u.DB.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer func(tx *sql.Tx) {
+		_ = tx.Rollback()
+	}(tx)
+
+	if _, err = tx.Exec(stmt, userAttr, newValue, userId); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func updateBalance(tx *sql.Tx, balance float64, userId int) error {
