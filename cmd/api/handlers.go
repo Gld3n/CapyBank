@@ -79,7 +79,6 @@ func (app *application) transactionHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// TODO: refactor this section and send JSON error responses
 	if err := app.transactions.processNewTransaction(reqTr); err != nil {
 		switch {
 		case errors.Is(err, ErrUserNotFound):
