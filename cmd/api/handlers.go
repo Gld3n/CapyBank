@@ -48,8 +48,8 @@ func (app *application) loginHandler(w http.ResponseWriter, r *http.Request) {
 func (app *application) signupHandler(w http.ResponseWriter, r *http.Request) {
 	var reqUser *RequestCreateUser
 	if err := json.NewDecoder(r.Body).Decode(&reqUser); err != nil {
-		app.logger.Info(err.Error())
 		app.clientError(w, err, http.StatusBadRequest)
+		return
 	}
 
 	hash, err := hashPassword([]byte(reqUser.Password))
@@ -123,6 +123,7 @@ func (app *application) listTransactionsHandler(w http.ResponseWriter, r *http.R
 	transactions, err := app.transactions.getLatestTransactions(limit, offset)
 	if err != nil {
 		app.serverError(w, r, err)
+		return
 	}
 
 	payload := make(map[string][]Transaction)
