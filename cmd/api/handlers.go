@@ -85,12 +85,50 @@ func (app *application) transactionHandler(w http.ResponseWriter, r *http.Reques
 			app.clientError(w, err, http.StatusNotFound)
 		case errors.Is(err, ErrInsufficientFunds):
 			app.clientError(w, err, http.StatusPaymentRequired)
-		case errors.Is(err, ErrSameUserTransaction):
-			app.clientError(w, err, http.StatusBadRequest)
-		case errors.Is(err, ErrNoTargetSpecified):
+		case isTransactionBadRequest(err):
 			app.clientError(w, err, http.StatusBadRequest)
 		default:
 			app.serverError(w, r, err)
 		}
+	}
+}
+
+func (app *application) listTransactionsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+
+	limit := 10
+	offset := 0
+
+	queryValues := r.URL.Query()
+	limitStr := queryValues.Get("limit")
+	offsetStr := queryValues.Get("offset")
+
+	if limitStr != "" {
+		err := validateLimit(limitStr, &limit)
+		if err != nil {
+			app.clientError(w, err, http.StatusBadRequest)
+			return
+		}
+	}
+
+	if offsetStr != "" {
+		err := validateOffset(offsetStr, &offset)
+		if err != nil {
+			app.clientError(w, err, http.StatusBadRequest)
+			return
+		}
+	}
+
+	transactions, err := app.transactions.getLatestTransactions(limit, offset)
+	if err != nil {
+		app.serverError(w, r, err)
+	}
+
+	payload := make(map[string][]Transaction)
+	payload["latest_transactions"] = transactions
+
+	if err = json.NewEncoder(w).Encode(payload); err != nil {
+		app.serverError(w, r, err)
 	}
 }

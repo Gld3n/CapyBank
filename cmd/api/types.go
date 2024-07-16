@@ -54,8 +54,8 @@ const (
 )
 
 type Transaction struct {
-	UserID             int       `json:"user_id"`
-	Amount             float64   `json:"amount"`
-	Type               Operation `json:"transaction_type"`
-	TargetUserUsername *string   `json:"target_user_username,omitempty"`
+	UserID       int       `json:"user_id"`
+	Amount       float64   `json:"amount"`
+	Type         Operation `json:"transaction_type"`
+	TargetUserID int       `json:"target_user_id"`
 }

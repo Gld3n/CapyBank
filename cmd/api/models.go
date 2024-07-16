@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"time"
 )
 
@@ -79,8 +78,42 @@ type TransactionModel struct {
 }
 
 func (t *TransactionModel) insertTransaction(tx *sql.Tx, tr *Transaction) error {
-	_, err := tx.Exec(`INSERT INTO transactions (user_id, amount, transaction_type, created_at) VALUES ($1, $2, $3, $4)`, tr.UserID, tr.Amount, tr.Type, time.Now())
+	stmt := `INSERT INTO transactions (user_id, amount, transaction_type, target_user_id, created_at) VALUES ($1, $2, $3, $4, $5)`
+
+	_, err := tx.Exec(stmt, tr.UserID, tr.Amount, tr.Type, tr.TargetUserID, time.Now())
 	return err
+}
+
+func (t *TransactionModel) getLatestTransactions(limit, offset int) ([]Transaction, error) {
+	tx, err := t.DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer func(tx *sql.Tx) {
+		_ = tx.Rollback()
+	}(tx)
+
+	var transactions []Transaction
+
+	rows, err := tx.Query(`SELECT user_id, amount, transaction_type, target_user_id FROM transactions ORDER BY created_at DESC LIMIT $1 OFFSET $2`, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer func(rows *sql.Rows) {
+		_ = rows.Close()
+	}(rows)
+
+	for rows.Next() {
+		var t Transaction
+
+		if err = rows.Scan(&t.UserID, &t.Amount, &t.Type, &t.TargetUserID); err != nil {
+			return nil, err
+		}
+
+		transactions = append(transactions, t)
+	}
+
+	return transactions, nil
 }
 
 func (t *TransactionModel) processNewTransaction(tr *Transaction) error {
@@ -109,7 +142,7 @@ func (t *TransactionModel) processNewTransaction(tr *Transaction) error {
 			return err
 		}
 	default:
-		return fmt.Errorf("operation type %s not valid", tr.Type)
+		return ErrInvalidOperationType
 	}
 
 	if err = t.insertTransaction(tx, tr); err != nil {
@@ -125,27 +158,28 @@ func deposit(tx *sql.Tx, tr *Transaction, balance float64) error {
 }
 
 func transfer(tx *sql.Tx, tr *Transaction, balance float64) error {
+	if tr.UserID == tr.TargetUserID {
+		return ErrSameUserTransaction
+	}
+
+	var targetExists int
+	err := tx.QueryRow(`SELECT 1 FROM users WHERE id = $1`, tr.TargetUserID).Scan(&targetExists)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrUserNotFound
+		}
+		return err
+	}
+
 	newBalance := balance - tr.Amount
 	if newBalance < 0 {
 		return ErrInsufficientFunds
 	}
 
-	if tr.TargetUserUsername == nil {
-		return ErrNoTargetSpecified
-	}
-
-	targetUser, err := getUserByUsername(tx, *tr.TargetUserUsername)
+	_, err = tx.Exec(`UPDATE users SET balance = balance + $1 WHERE id = $2`, tr.Amount, tr.TargetUserID)
 	if err != nil {
-		if errors.Is(err, ErrNoRecord) {
-			return ErrUserNotFound
-		}
+		return err
 	}
-
-	if tr.UserID == targetUser.ID {
-		return ErrSameUserTransaction
-	}
-
-	_, err = tx.Exec(`UPDATE users SET balance = balance + $1 WHERE id = $2`, tr.Amount, targetUser.ID)
 
 	return updateBalance(tx, newBalance, tr.UserID)
 }
